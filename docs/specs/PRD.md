@@ -69,16 +69,20 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 - Lack of in-context JIRA visibility — readers must context-switch to find ticket status
 - No enforcement mechanism for document quality or link integrity
 - Semantic search is unavailable across Git-hosted documentation
+- Advanced editing capabilities - WYSIWYG for tables, heading, styles
+- Advanced documents and code content presentation capabilities - diagrams, tables, code snippets, xls tables or ppt or pdf preview, etc
+- Automated navigation across git source files and documents - table of contents, parent/child pages, references to other repositories or files
 
 ### 1.3 Goals (Business Outcomes)
 
 **Success Criteria:**
 
 - Editing and committing a document takes under 60 seconds for an authenticated Editor (Baseline: no baseline — new product; Target: v1.0 — Q3 2026)
-- Inline comments by Guests are possible without a Git account (Baseline: not possible today; Target: v1.0 — Q3 2026)
 - Broken internal links are surfaced before a document is saved (Baseline: not possible today; Target: v1.0 — Q3 2026)
 - Semantic search returns relevant results across 10,000 documents in under 2 seconds (Baseline: N/A; Target: v1.0 — Q3 2026)
 - JIRA issue status is visible inline without leaving the document (Baseline: not possible today; Target: v1.0 — Q3 2026)
+  - It must be possible to configure what JIRA fields to be displayed, such as fix version, assignee, title, etc
+  - It must be possible to show the whole JIRA items list with selected fields
 
 **Capabilities:**
 
@@ -89,6 +93,12 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 - Synchronise document changes bidirectionally with Git repositories
 - Surface JIRA issue data (status, assignee, priority) inline in documents
 - Search documentation semantically using AI-powered embeddings
+- Edit Markdown with WYSIWYG editor — headings, styles, tables, links
+- Global documentation space system with configurable Git repositories attached and configurable lists of files and folders to be discoverable
+- Integration with notification systems for document creation and updates — send emails, send notifications to Teams/Slack
+- Integrated chat where users can ask questions, review documents, and collaborate
+- Integrated AI assistant for inline document editing that can fix misprints, suggest better wording, and improve content
+- Support integration with local LLM models for misprint detection and content enhancement
 
 ### 1.4 Glossary
 
@@ -122,7 +132,7 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 
 **ID**: `cpt-cyberwiki-actor-editor`
 
-**Role**: Creates, edits, and deletes documents within assigned spaces; reviews and approves or rejects Pending Changes submitted by Commenters.
+**Role**: Creates, edits, and deletes documents within available git repositories; reviews and approves or rejects Pending Changes submitted by Commenters.
 
 **Needs**: A fast, distraction-free editing experience with rich previews, inline validation feedback, and a clear review queue.
 
@@ -142,13 +152,6 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 
 **Needs**: Fast, well-rendered document views with visible inline comments and JIRA context.
 
-#### Guest
-
-**ID**: `cpt-cyberwiki-actor-guest`
-
-**Role**: Unauthenticated user who can read public documents and leave inline comments (name and email required); cannot edit or propose changes.
-
-**Needs**: Zero-friction commenting on public content without account registration.
 
 ### 2.2 System Actors
 
@@ -200,14 +203,14 @@ The platform operates in a staging environment in v1; a production-grade deploym
 
 - Web-based browsing and editing of Git-backed documents (Markdown focus)
 - Live editing with immediate rich preview (Markdown, diagrams, tables)
-- Inline commenting on documents, including by unauthenticated Guests on public spaces
+- Inline commenting on documents
 - Pending Changes workflow: propose → review → approve/reject
 - Immutable change history per document
 - Bidirectional Git synchronisation with configurable direction and schedule
 - Configurable document validators (link checking, schema validation, custom rules)
 - JIRA integration: inline status badges, issue views (grid, chart, Gantt), and issue search within the app
 - Full-text and semantic (AI-powered) search across all accessible documents
-- Role-based access control per space
+- Access control inherited from Git repository permissions
 - Self-hosted, single-team deployment
 
 ### 4.2 Out of Scope
@@ -257,13 +260,33 @@ The system **MUST** allow Editors to edit document content directly in the brows
 
 **Actors**: `cpt-cyberwiki-actor-editor`
 
+#### Inline Pending Changes Visibility
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-inline-pending-changes`
+
+The system **MUST** display pending changes from open pull requests inline within the document view for all users, as if the changes were already committed, with the following capabilities:
+
+1. **Visual Indication**: Pending changes **MUST** be highlighted with a distinct background color to clearly indicate they are not yet merged
+2. **Change Metadata**: Each pending change snippet **MUST** display:
+   - Author name
+   - Last update timestamp
+   - Quick link to the full pull request
+   - Visual indicators similar to diff view (red/green sections for deletions/additions)
+3. **Inline Comments**: Users **MUST** be able to comment directly on pending change snippets; comments **MUST** be linked to the pull request
+4. **Snippet Approval**: Users **MUST** be able to mark individual change snippets as "reviewed" or "pre-approved" for visibility to other reviewers; approved snippets **MUST** have a visually distinct background color from unreviewed pending changes
+5. **PR Navigation**: Users **MUST** be able to navigate from any pending change snippet directly to the full pull request view to see all changes, leave comprehensive comments, or formally approve the PR
+
+**Rationale**: Inline visibility of pending changes eliminates context-switching between the document and the PR review interface, enabling reviewers to see proposed changes in the context of the full document rather than isolated diffs. Per-snippet approval tracking helps teams coordinate review effort on large PRs. This mirrors the "viewed file" checkbox pattern familiar from Git hosting platforms while providing richer in-context review capabilities.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
+
 #### Save to Fork and Commit to Main
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-save-commit`
 
-The system **MUST** support a two-step save flow: (1) save the edit to a personal fork or branch, then (2) commit/merge to the main branch — with the commit process being at least as smooth as the equivalent Git CLI flow.
+The system **MUST** support a GitHub-style review workflow with a "Submit review" button pattern: (1) save the edit to a personal fork or branch, then (2) submit for review/merge to the main branch. The system **MUST** display changes with visual diff highlighting (background colors for additions and deletions, including word-level changes) before submission, making it clear what content was added, removed, or modified.
 
-**Rationale**: Mirrors a familiar Git-based workflow while keeping Git as the source of truth; the streamlined UX lowers barriers compared to raw Git.
+**Rationale**: The GitHub "Submit review" pattern is familiar to engineering teams and provides clear visual feedback on changes before they are committed. Visual diff highlighting (showing deleted words/lines and added content with distinct background colors) reduces errors by making changes immediately apparent, mirroring the Git diff experience while keeping Git as the source of truth.
 
 **Actors**: `cpt-cyberwiki-actor-editor`
 
@@ -273,11 +296,11 @@ The system **MUST** support a two-step save flow: (1) save the edit to a persona
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-inline-comments`
 
-The system **MUST** allow any actor (including Guests on public documents) to leave inline comments anchored to a specific line range within a document.
+The system **MUST** allow authenticated actors to leave inline comments anchored to a specific line range within a document.
 
 **Rationale**: Context-specific comments are more actionable and easier to navigate than document-level notes; they enable non-Git users to participate meaningfully in review.
 
-**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-guest`
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`
 
 #### Comments Survive Content Changes
 
@@ -299,13 +322,13 @@ The system **MUST** support threaded replies to inline comments (one level of ne
 
 **Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-commenter`
 
-#### Comment Storage in Git
+#### Comment Storage
 
-- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-comment-git-storage`
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-comment-storage`
 
-The system **MUST** persist inline comments by committing them to Git (in a dedicated location within the repository) so that comment history survives platform migrations and remains auditable.
+The system **MUST** persist inline comments in a configurable storage location: either (1) in a dedicated location within the repository, (2) in a dedicated separate repository, or (3) in a database. The storage location **MUST** be configurable to allow teams to choose the approach that best fits their security and access control requirements.
 
-**Rationale**: Storing comments outside Git breaks the single-source-of-truth principle and creates data that cannot be recovered from the repository alone.
+**Rationale**: Making comment storage configurable keeps the security and access model simple by allowing teams to leverage existing Git repository permissions for comment access control (by storing comments in Git), or to use a separate cyber-wiki-comments repository with its own access controls, or to use a database for simpler management. This flexibility avoids the need to build complex permission systems within the platform itself.
 
 **Actors**: `cpt-cyberwiki-actor-git-repo`
 
@@ -335,9 +358,9 @@ The system **MUST** allow Editors and Admins to approve or reject Pending Change
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-change-history`
 
-The system **MUST** maintain an immutable per-document change history that records author, timestamp, change type, summary, and the content diff for every save.
+The system **MUST** maintain an immutable per-document change history that records author, timestamp, change type, summary, the content diff, change approvers, and the person who merged the change for every save.
 
-**Rationale**: Auditability and the ability to understand why a document changed over time are fundamental to trust in a documentation platform.
+**Rationale**: Auditability and the ability to understand why a document changed over time are fundamental to trust in a documentation platform. Recording change approvers and the person who merged it is critical to know who reviewed and authorized the change, especially for compliance and accountability purposes.
 
 **Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-viewer`
 
@@ -377,9 +400,9 @@ The system **MUST** render draw.io diagram files linked or embedded within docum
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-table-rendering`
 
-The system **MUST** render Markdown tables as styled HTML tables with readable formatting in all document views.
+The system **MUST** render Markdown tables as styled HTML tables with readable formatting in all document views. The system **SHOULD** support automated sorting and filtering capabilities for rendered tables to enable users to interact with tabular data without editing the source.
 
-**Rationale**: Plain-text table syntax is unreadable at a glance; rendered tables are a basic quality-of-life requirement for structured documentation.
+**Rationale**: Plain-text table syntax is unreadable at a glance; rendered tables are a basic quality-of-life requirement for structured documentation. Automated sorting and filtering enhance usability for large tables, allowing users to quickly find relevant data without manually reorganizing the table content.
 
 **Actors**: `cpt-cyberwiki-actor-viewer`, `cpt-cyberwiki-actor-editor`
 
@@ -387,9 +410,13 @@ The system **MUST** render Markdown tables as styled HTML tables with readable f
 
 - [ ] `p3` - **ID**: `cpt-cyberwiki-fr-custom-visuals`
 
-The system **MUST** provide an extension point for rendering custom visual elements within documents beyond the built-in preview types.
+The system **MUST** provide an extension point for rendering custom visual elements within documents beyond the built-in preview types. Additionally, the system **SHOULD** support the following Confluence-style rendering features:
 
-**Rationale**: Teams have diverse visualisation needs (Gantt charts, topology maps, custom dashboards); a fixed set of renderers will eventually be insufficient.
+1. **Checkbox rendering**: Interactive checkboxes within documents (similar to task lists in Confluence)
+2. **Date rendering**: Formatted date display with calendar picker integration
+3. **Current user highlight**: Automatic highlighting of content relevant to the currently logged-in user (e.g., mentions, assigned tasks)
+
+**Rationale**: Teams have diverse visualisation needs (Gantt charts, topology maps, custom dashboards); a fixed set of renderers will eventually be insufficient. Confluence-style features like checkboxes, date rendering, and user highlighting are familiar to documentation teams and enhance interactivity and personalization without requiring custom extensions.
 
 **Actors**: `cpt-cyberwiki-actor-admin`
 
@@ -441,17 +468,17 @@ The system **MUST** support bidirectional synchronisation between a Space and a 
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-conflict-detection`
 
-The system **MUST** detect merge conflicts during sync and surface them to the Admin for resolution; conflicted spaces **MUST** be clearly indicated in the UI.
+The system **MUST** detect merge conflicts during sync and surface them to the change author for resolution; whoever is second must update their PR to resolve conflicts, following standard Git workflow. Conflicted PRs **MUST** be clearly indicated in the UI.
 
-**Rationale**: Undetected conflicts silently overwrite content; surfacing them preserves data integrity.
+**Rationale**: Undetected conflicts silently overwrite content; surfacing them preserves data integrity. Conflict resolution is the author's responsibility, not the Admin's, matching standard Git practices where the second committer must rebase or merge and resolve conflicts before their changes can be merged.
 
-**Actors**: `cpt-cyberwiki-actor-admin`
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`
 
 ### 5.8 Search
 
 #### Full-Text Search
 
-- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-fulltext-search`
+- [ ] `p2` - **ID**: `cpt-cyberwiki-fr-fulltext-search`
 
 The system **MUST** provide full-text search across all documents and spaces the requesting actor has access to, with results filterable by space and showing the document title, space name, a highlighted excerpt, and line number.
 
@@ -461,7 +488,7 @@ The system **MUST** provide full-text search across all documents and spaces the
 
 #### Semantic (AI-Powered) Search
 
-- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-semantic-search`
+- [ ] `p2` - **ID**: `cpt-cyberwiki-fr-semantic-search`
 
 The system **MUST** provide AI-powered semantic search using vector embeddings so that queries return conceptually relevant documents even when they do not share exact keywords with the query.
 
@@ -507,31 +534,11 @@ The system **MUST** allow users to search JIRA issues from within the platform w
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-authentication`
 
-The system **MUST** authenticate all non-Guest users before granting access to any space or document; the platform **MUST** support at minimum username/password authentication and **SHOULD** support SSO/OIDC integration for teams using an identity provider.
+The system **MUST** authenticate all users before granting access to any space or document; the platform **MUST** support at minimum username/password authentication and **SHOULD** support SSO/OIDC integration for teams using an identity provider.
 
-**Rationale**: Without authentication, role-based access control cannot be enforced; SSO reduces credential management overhead for engineering teams already using an identity provider.
+**Rationale**: Authentication is required to inherit Git repository permissions; SSO reduces credential management overhead for engineering teams already using an identity provider.
 
 **Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
-
-#### Space-Level Role Assignment
-
-- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-rbac`
-
-The system **MUST** enforce role-based access control per space; each space **MUST** have its own member list with roles, with global roles serving as a fallback when no space-level role is set.
-
-**Rationale**: Different spaces contain documentation at different sensitivity levels; per-space roles allow fine-grained control without requiring separate platform instances.
-
-**Actors**: `cpt-cyberwiki-actor-admin`
-
-#### Guest Access to Public Spaces
-
-- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-guest-access`
-
-The system **MUST** allow unauthenticated Guests to read and comment on documents in spaces marked as public, requiring only a name and email address to post a comment.
-
-**Rationale**: Requiring account creation to leave a comment on a public document is a significant barrier for stakeholders and external contributors; guest access removes it.
-
-**Actors**: `cpt-cyberwiki-actor-guest`
 
 ---
 
@@ -645,36 +652,11 @@ Cyber Wiki depends on the following external integration contracts:
 - **Validation failure**: System blocks save and highlights the failing validator; Editor must resolve before proceeding
 - **Merge conflict**: System detects conflict during sync and notifies the Admin
 
-### Guest Leaves an Inline Comment
-
-- [ ] `p2` - **ID**: `cpt-cyberwiki-usecase-guest-comment`
-
-**Actor**: `cpt-cyberwiki-actor-guest`
-
-**Preconditions**:
-- The document is in a public space
-- Guest has not previously registered an account
-
-**Main Flow**:
-1. Guest opens the document in the browser
-2. Guest selects a line range and clicks "Add comment"
-3. System prompts for name and email
-4. Guest enters comment text, name, and email; submits
-5. System persists the comment to Git and displays it in the gutter
-
-**Postconditions**:
-- Comment is visible to all readers of the document
-- Comment is committed to the Git repository
-
-**Alternative Flows**:
-- **Space is private**: Guest cannot access the document; access is denied
-
 ---
 
 ## 9. Acceptance Criteria
 
 - [ ] An Editor can open, edit, and commit a Markdown document entirely from the browser without a local Git client
-- [ ] A Guest can leave an inline comment on a public document by providing only name and email
 - [ ] A document with a broken internal link cannot be saved until the link is resolved or the check is explicitly overridden
 - [ ] Mermaid and draw.io diagrams render inline in the document viewer
 - [ ] Semantic search returns relevant results for a natural-language query across a corpus of at least 1,000 documents
@@ -716,7 +698,6 @@ Cyber Wiki depends on the following external integration contracts:
 |------|--------|------------|
 | Git sync conflicts corrupt document content | HIGH — data loss or silent overwrites | Implement conflict detection with Admin notification before applying any conflicting change |
 | Semantic search quality is insufficient for domain-specific jargon | MEDIUM — users abandon search and fall back to manual browsing | Allow teams to tune embedding models or supplement with keyword search as a fallback |
-| Guest comment spam on public spaces | MEDIUM — low-quality content, increased moderation burden | Require name + email; allow Admins to disable guest commenting per space; add rate limiting |
 | Validator false positives block legitimate saves | MEDIUM — Editor frustration, validation bypassed | All validators must support an explicit override with a reason logged to the Change Record |
 | draw.io rendering adds significant bundle size or latency | LOW — slower page loads | Lazy-load the draw.io renderer only when a draw.io file is detected on the page |
 
