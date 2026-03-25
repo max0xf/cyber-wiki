@@ -1,0 +1,174 @@
+{
+  "pipeline": "3-stage",
+  "sourceManifest": "packages/cli/template-sources/manifest.yaml",
+  "stage1a": {
+    "source": "./project/",
+    "items": [
+      "configs/",
+      "eslint-plugin-local/",
+      "scripts/",
+      ".npmrc",
+      ".nvmrc",
+      "README.md"
+    ]
+  },
+  "stage1b": {
+    "source": "project root",
+    "rootFiles": [
+      "index.html",
+      "tailwind.config.ts",
+      "tsconfig.node.json",
+      ".gitignore",
+      "src/vite-env.d.ts",
+      "src/app/main.tsx",
+      "src/app/App.tsx",
+      "src/app/globals.css"
+    ],
+    "directories": [
+      "src/app/themes",
+      "src/app/icons",
+      "src/app/api",
+      "src/app/components",
+      "src/app/lib",
+      "src/app/mfe",
+      "src/app/actions",
+      "src/app/effects",
+      "src/app/events"
+    ]
+  },
+  "stage1c": {
+    "source": "root .ai/ (marker-based)",
+    "overridesSource": "./ai-overrides/",
+    "standaloneFiles": [
+      "MCP_TROUBLESHOOTING.md",
+      "commands/user/hai3-arch-explain.md",
+      "commands/user/hai3-new-component.md",
+      "commands/user/hai3-new-screen.md",
+      "commands/user/hai3-new-screenset.md",
+      "commands/user/hai3-review-pr.md",
+      "commands/user/hai3-update-guidelines.md",
+      "targets/EVENTS.md",
+      "targets/LAYOUT.md",
+      "targets/SCREENSETS.md",
+      "targets/STYLING.md"
+    ],
+    "overrideFiles": [
+      "GUIDELINES.md",
+      "targets/AI.md",
+      "targets/AI_COMMANDS.md",
+      "targets/API.md",
+      "targets/CLI.md",
+      "targets/THEMES.md"
+    ]
+  },
+  "stage2": {
+    "generated": [
+      "CLAUDE.md",
+      ".cursor/rules/hai3.mdc",
+      ".windsurf/rules/hai3.md",
+      ".claude/commands/hai3-arch-explain.md",
+      ".claude/commands/hai3-new-component.md",
+      ".claude/commands/hai3-new-screen.md",
+      ".claude/commands/hai3-new-screenset.md",
+      ".claude/commands/hai3-review-pr.md",
+      ".claude/commands/hai3-update-guidelines.md"
+    ]
+  },
+  "layerConfiguration": {
+    "description": "Layer-aware filtering for SDK architecture",
+    "layers": [
+      "sdk",
+      "framework",
+      "react",
+      "app"
+    ],
+    "targetMapping": {
+      "API.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ],
+      "STORE.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ],
+      "EVENTS.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ],
+      "I18N.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ],
+      "FRAMEWORK.md": [
+        "framework",
+        "react",
+        "app"
+      ],
+      "LAYOUT.md": [
+        "framework",
+        "react",
+        "app"
+      ],
+      "THEMES.md": [
+        "framework",
+        "react",
+        "app"
+      ],
+      "REACT.md": [
+        "react",
+        "app"
+      ],
+      "SCREENSETS.md": [
+        "react",
+        "app"
+      ],
+      "STYLING.md": [
+        "react",
+        "app"
+      ],
+      "UIKIT.md": [
+        "react",
+        "app"
+      ],
+      "STUDIO.md": [
+        "react",
+        "app"
+      ],
+      "AI.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ],
+      "AI_COMMANDS.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ],
+      "CLI.md": [
+        "sdk",
+        "framework",
+        "react",
+        "app"
+      ]
+    },
+    "guidelinesVariants": {
+      "sdk": "GUIDELINES.sdk.md",
+      "framework": "GUIDELINES.framework.md",
+      "react": "GUIDELINES.md",
+      "app": "GUIDELINES.md"
+    }
+  },
+  "mfeTemplate": "mfe-template",
+  "mfeShared": "mfe-shared",
+  "generatedAt": "2026-03-25T16:26:32.704Z"
+}

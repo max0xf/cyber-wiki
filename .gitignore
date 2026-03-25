@@ -1,0 +1,50 @@
+node_modules
+.env
+settings.local.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+dist
+dist-ssr
+*.local
+.vite
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env.local
+.env.*.local
+
+# Generated files (frontx)
+src/frontx/src/themes/tailwindColors.ts
+src/frontx/packages/cli/templates
+src/frontx/packages/cli/template-sources/layout/
+
+# NPM pack artifacts
+*.tgz
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/worktrees/
+
+# HAI3 migration tracker (project-local state)
+.hai3/
+
+# Local CLI e2e artifacts
+.artifacts/
