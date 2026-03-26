@@ -26,6 +26,7 @@
   - [5.8 Search](#58-search)
   - [5.9 JIRA Integration](#59-jira-integration)
   - [5.10 Access Control](#510-access-control)
+  - [5.11 Git Provider Integration](#511-git-provider-integration)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 Module-Specific NFRs](#61-module-specific-nfrs)
   - [6.2 NFR Exclusions](#62-nfr-exclusions)
@@ -34,6 +35,10 @@
   - [7.2 External Integration Contracts](#72-external-integration-contracts)
 - [8. Use Cases](#8-use-cases)
   - [Edit and Commit a Document](#edit-and-commit-a-document)
+  - [Authenticate and Configure Git Credentials](#authenticate-and-configure-git-credentials)
+  - [Browse Repository File Tree](#browse-repository-file-tree)
+  - [View File Content with Inline Comments](#view-file-content-with-inline-comments)
+  - [Review Pull Request Diff](#review-pull-request-diff)
 - [9. Acceptance Criteria](#9-acceptance-criteria)
 - [10. Dependencies](#10-dependencies)
 - [11. Assumptions](#11-assumptions)
@@ -678,6 +683,103 @@ The system **MUST** authenticate all users before granting access to any space o
 
 **Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
+### 5.11 Git Provider Integration
+
+#### Multi-Provider Git Credential Management
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-git-credential-management`
+
+The system **MUST** allow each user to configure per-user credentials for external services — Git provider, Confluence, JIRA, and ZTA (Zero Trust Access) — through a Profile settings page. Each credential set **MUST** be stored encrypted at rest (symmetric encryption). The system **MUST** confirm credential presence without ever exposing the plaintext secret.
+
+**Rationale**: Engineering teams operate behind Zero Trust proxies and use corporate JIRA/Confluence instances with separate tokens; storing all credentials per-user in one place eliminates repeated configuration across features.
+
+**Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`
+
+#### Pluggable Git Provider Backend
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-git-provider-backend`
+
+The system **MUST** support GitHub and Bitbucket Server as Git providers, and **MUST** implement provider integration through an abstract interface so that additional providers (GitLab, Azure DevOps) can be added without changing the consuming application logic. Each provider **MUST** be selectable per user with a configurable base URL to support self-hosted instances.
+
+**Rationale**: Engineering teams run a variety of self-hosted or cloud Git platforms; a pluggable interface prevents vendor lock-in and enables incremental provider coverage.
+
+**Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`
+
+#### Repository Listing and Search
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-repo-listing`
+
+The system **MUST** list all repositories accessible via the user's configured Git token, with support for pagination and name/description search. The system **MUST** allow users to mark repositories as favourites (persisted per user) and track recently viewed repositories (last 10, auto-pruned), with favourites surfaced first in the listing.
+
+**Rationale**: Teams with dozens or hundreds of repositories need fast discovery; favourites and recents reduce the time to reach frequently-accessed repos to zero.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
+
+#### Branch Browsing and File Tree Navigation
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-file-tree-navigation`
+
+The system **MUST** display a repository's directory tree for any selectable branch, including last-modified date and last-author metadata per entry where available from the Git provider. The system **MUST** support recursive directory drill-down and display files that exist only in open pull requests (phantom files) as a distinct visual type within the tree.
+
+**Rationale**: Navigating a repository as a browsable file tree — rather than raw clone output — is the expected interaction model for non-Git-client users; last-author/date metadata provides provenance context without requiring a separate blame query.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
+
+#### File Content Display with Syntax Highlighting
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-file-content-display`
+
+The system **MUST** render the content of any text file from a Git repository with syntax highlighting appropriate to the file's detected language. The system **MUST** display line numbers and allow the user to select individual lines or line ranges as the basis for inline comments.
+
+**Rationale**: Syntax-highlighted, line-numbered file viewing is the baseline expectation for any developer-facing tool; line selection is required for attaching contextual comments.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
+
+#### Git Blame
+
+- [ ] `p2` - **ID**: `cpt-cyberwiki-fr-git-blame`
+
+The system **MUST** display per-line authorship (author name, commit SHA, commit date) for any file from a Git repository, sourced directly from the Git provider's blame API.
+
+**Rationale**: Blame information is essential for understanding who introduced a specific line of code or content and when, enabling faster triage and accountability without leaving the platform.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-viewer`
+
+#### Pull Request Listing and Diff Review
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-pr-diff-review`
+
+The system **MUST** list pull requests for a repository (filterable by state: open / merged / declined, and by search query) and display each PR's metadata: title, author, source and target branches, age, commit count, lines-of-code delta, reviewer count, and comment count. The system **MUST** allow users to open a PR, view its changed-files list (with addition/deletion counts per file), select a file to view its full diff with hunk-level navigation (previous/next chunk), and see deletion and addition lines distinguished by background colour with old and new line numbers.
+
+**Rationale**: In-platform PR review removes the need to switch to the Git host for reviewing proposed changes in the context of surrounding documentation; hunk navigation makes large diffs tractable.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`
+
+#### API Token Management
+
+- [ ] `p2` - **ID**: `cpt-cyberwiki-fr-api-token-management`
+
+The system **MUST** allow users to create, list, and delete named personal API tokens that can be used to authenticate programmatic access (CI, scripts) to the platform. API tokens **MUST** be distinct from the Git provider credentials configured in the Profile settings.
+
+**Rationale**: CI pipelines and scripts need a stable, revocable credential that does not expose the user's primary Git token; named tokens with individual revocation capability provide that without requiring service accounts.
+
+**Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`
+
+#### Comment Line-Anchoring Algorithm
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-comment-line-anchoring`
+
+The system **MUST** implement a line-anchoring algorithm that tracks the current position of an inline comment as the file it is attached to evolves. At comment creation the system **MUST** capture: the exact commented line content, a SHA-256 hash of that content, 2–3 lines of context before and after, and the original line number. On every subsequent file view the system **MUST** recompute the comment's current line position and report one of four statuses:
+
+- `anchored` — line content found at the same or a different position; `computed_line_number` updated
+- `moved` — line content found at a shifted position
+- `outdated` — exact line no longer present but context lines still match the surrounding area
+- `deleted` — neither line content nor context can be located in the current file
+
+**Rationale**: Comments that silently disappear after file edits destroy review continuity; a content-hash + context-window algorithm provides resilient anchoring that survives reformatting, line insertions, and moderate refactors without requiring a full diff-apply engine.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
+
 ---
 
 ## 6. Non-Functional Requirements
@@ -736,6 +838,26 @@ The system **MUST** be operable by non-engineers (product managers, designers) w
 
 **Note**: WCAG 2.1 AA accessibility compliance is not required in v1 (internal tool, known engineering user base); deferred to production deployment.
 
+#### Credential Security
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-nfr-credential-security`
+
+All user credentials stored by the platform — including Git provider tokens, Confluence tokens, JIRA tokens, and ZTA tokens — **MUST** be encrypted at rest using symmetric encryption with a key that is never stored alongside the data. The plaintext of any credential **MUST NOT** be written to the database, application logs, or any audit record. The application **MUST** use a configurable encryption key (distinct from the application secret key) so that key rotation is possible without re-deploying the application.
+
+**Threshold**: Zero credentials stored in plaintext; encryption key is externally configurable
+
+**Rationale**: User credentials for external services are high-value secrets; accidental database exposure must not also expose Git or JIRA tokens. A configurable, separately managed key enables key rotation and meets baseline secret-management expectations for an internal engineering tool.
+
+#### Theme and Personalisation
+
+- [ ] `p2` - **ID**: `cpt-cyberwiki-nfr-theme`
+
+The system **MUST** support light and dark display themes selectable per user. The selected theme **MUST** be persisted and applied consistently across all views without requiring a page reload.
+
+**Threshold**: Light and dark themes available; preference persisted per user
+
+**Rationale**: Dark mode is a standard expectation for developer-facing tools; per-user persistence avoids repeated reconfiguration.
+
 ### 6.2 NFR Exclusions
 
 - **Multi-region availability**: Not applicable in v1 — single-node staging deployment only.
@@ -792,6 +914,128 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
+### Authenticate and Configure Git Credentials
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-usecase-auth-configure`
+
+**Actor**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-admin`
+
+**Preconditions**:
+- User has a valid account (username + password) in the system
+
+**Main Flow**:
+1. User navigates to the login page
+2. User enters username and password; system validates and creates an authenticated session
+3. User navigates to the Profile settings page
+4. User selects a Git provider (GitHub or Bitbucket Server) and enters the provider base URL
+5. User enters their Git personal access token; system encrypts it at rest using Fernet symmetric encryption
+6. Optionally, user configures Confluence URL + token, JIRA URL + email + token, and ZTA token in the same profile form
+7. User saves settings; system confirms token presence (without exposing the secret)
+
+**Postconditions**:
+- User session is active; all subsequent API calls are authenticated
+- Git (and optionally Confluence/JIRA) credentials are stored encrypted and available for provider calls
+
+**Alternative Flows**:
+- **Wrong password**: System returns 401; user remains on login page
+- **Token encryption failure**: System logs the error and treats the token as unset; user is prompted to reconfigure
+
+---
+
+### Browse Repository File Tree
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-usecase-browse-repo`
+
+**Actor**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-viewer`, `cpt-cyberwiki-actor-commenter`
+
+**Preconditions**:
+- User is authenticated and has a valid Git token configured
+- At least one repository is accessible via the configured Git provider
+
+**Main Flow**:
+1. User opens the Repositories view; system lists all accessible repositories (via configured Git provider token)
+2. User can search repositories by name/description
+3. User marks a repository as a favourite (persisted per user); favourited repos appear at the top
+4. User opens a repository; system loads the default branch and displays the root directory tree
+5. User selects a branch from the branch dropdown; file tree reloads for the selected branch
+6. User navigates into subdirectories by clicking folder entries
+7. User selects a file; system fetches and displays file content
+
+**Postconditions**:
+- Selected file content is displayed in the file viewer
+- Repository is recorded in the user's recent-repos list (last 10 entries retained)
+
+**Alternative Flows**:
+- **No Git token configured**: System returns 401/422 with a message directing the user to configure credentials in Profile settings
+- **Repository not found**: System surfaces a 404 error with the repository path
+- **Provider rate limit**: System returns a 429 with a retry-after indication
+
+---
+
+### View File Content with Inline Comments
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-usecase-view-file-comments`
+
+**Actor**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
+
+**Preconditions**:
+- User is authenticated
+- User has navigated to a file in the repository file tree
+
+**Main Flow**:
+1. System fetches file content from the Git provider and renders it with syntax highlighting
+2. User selects one or more lines in the rendered file; the "Add comment" action becomes available
+3. User types a comment and submits; system captures the commented line content and 2–3 lines of surrounding context for future anchoring
+4. System persists the comment with: line range, line content hash, context before/after, original line number, and anchoring status (`anchored`)
+5. System re-renders the comment panel showing all comments for the current file/branch
+6. On subsequent file views, system fetches current file content and runs the line-matching algorithm to compute current line positions for all comments:
+   - If the exact line content is found → status remains `anchored`, `computed_line_number` updated
+   - If the line has shifted position → status set to `moved`, new position reported
+   - If the line content is no longer found but context matches → status set to `outdated`
+   - If neither line nor context match → status set to `deleted`
+7. User can edit or delete their own comments (ownership enforced); status can be toggled to `resolved`
+
+**Postconditions**:
+- Comment is persisted against the git provider + project + repo + branch + file path coordinates
+- All future views of the same file show the comment at the dynamically computed current line position
+
+**Alternative Flows**:
+- **File content unavailable** (provider error): System falls back to displaying comments at their original line numbers without recomputing positions
+- **Comment by non-owner**: System returns 403 on attempted edit or delete
+
+---
+
+### Review Pull Request Diff
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-usecase-review-pr`
+
+**Actor**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`
+
+**Preconditions**:
+- User is authenticated and has a valid Git token configured
+- The target repository has at least one open pull request
+
+**Main Flow**:
+1. User opens a repository and switches to the "Pull Requests" tab
+2. System fetches open PRs from the Git provider and displays them with: title, author, source → target branch, age, commit count, LoC delta, reviewer count, and comment count
+3. User can filter PRs by search query, project, or repository; user can toggle between open/merged/declined states
+4. User clicks a PR to open the diff view; system fetches the list of changed files
+5. User selects a file from the changed-files list; system fetches the diff for that file
+6. Diff is rendered with hunk-level navigation: context lines, deletion lines (red), addition lines (green), line numbers for both old and new sides
+7. User navigates between change chunks using the chunk navigator (previous/next chunk)
+8. User selects a line or range in the diff and adds a comment; the comment is anchored to the file path and line range with full context capture (same mechanism as file-view comments)
+9. User navigates between files in the PR using the PR file navigator
+
+**Postconditions**:
+- PR diff is visible with all changed files and hunk-level context
+- Any comments left on diff lines are persisted with line-anchoring metadata
+
+**Alternative Flows**:
+- **PR not found**: System shows a 404 error with the PR identifier
+- **No changed files**: System shows an empty changed-files list with an informational message
+
+---
+
 ## 9. Acceptance Criteria
 
 - [ ] An Editor can open, edit, and commit a Markdown document entirely from the browser without a local Git client
@@ -811,6 +1055,27 @@ Cyber Wiki depends on the following external integration contracts:
 - [ ] `[JIRA:KEY-123]` references render as inline badges showing live status, assignee, and priority
 - [ ] A Viewer cannot edit or propose changes to a document (access is denied)
 - [ ] All document saves are reflected as commits in the linked Git repository within the configured sync interval
+- [ ] A user can log in with username and password; an active session is established and persisted across page reloads
+- [ ] A user can configure a Git provider (GitHub or Bitbucket Server), base URL, and personal access token in Profile settings; the credential is stored encrypted and never exposed in plaintext
+- [ ] A user can additionally configure Confluence, JIRA, and ZTA credentials in the same Profile settings page; each credential is stored independently encrypted
+- [ ] A user can create, list, and revoke named API tokens for programmatic access independently of their Git credentials
+- [ ] The Repositories view lists all repositories accessible via the user's Git token; the list is searchable by name/description
+- [ ] A user can mark any repository as a favourite; favourites appear at the top of the listing and persist across sessions
+- [ ] The system records the last 10 repositories opened by each user; this recent list is visible in the Repositories view
+- [ ] Opening a repository displays the default branch and root directory tree; the user can select any branch from a dropdown to reload the tree
+- [ ] A user can navigate into subdirectories by clicking folder entries; file entries added only in open pull requests are visually distinguished from committed files
+- [ ] Each file entry in the directory tree displays the last-modified date and last-author name where available from the Git provider
+- [ ] Opening a file displays its content with syntax highlighting appropriate to the detected language and line numbers on every line
+- [ ] A user can view per-line authorship (author, commit SHA, date) for any file via a blame view
+- [ ] A user can select a line range in a file view and submit an inline comment; the comment appears anchored to that line range
+- [ ] After the commented file is modified, reopening the file re-computes the comment's current line position; the comment is marked `anchored`, `moved`, `outdated`, or `deleted` accordingly
+- [ ] A user can edit or delete only their own comments; attempting to modify another user's comment is rejected with a 403 error
+- [ ] Comment counts per file are displayed as badges in the directory tree listing
+- [ ] The Pull Requests tab lists open PRs for a repository with title, author, source→target branch, age, commit count, LoC delta, reviewer count, and comment count; the list is filterable by state (open / merged / declined) and searchable
+- [ ] Selecting a PR shows the list of changed files with per-file addition and deletion counts
+- [ ] Selecting a changed file in a PR renders its diff with old and new line numbers, context lines, deletion lines highlighted red, and addition lines highlighted green
+- [ ] The user can navigate between change hunks in a diff using previous/next chunk controls
+- [ ] A user can select a line in a PR diff and add an inline comment; the comment is persisted with the same line-anchoring metadata as file-view comments
 
 ---
 
@@ -860,3 +1125,6 @@ Cyber Wiki depends on the following external integration contracts:
 | Should draw.io rendering be client-side (draw.io JS SDK) or server-side? | TBD | Before DESIGN |
 | Should Git sync support webhook-triggered pushes in addition to polling? | TBD | Before DESIGN |
 | What is the expected maximum document corpus size beyond the 10,000 target? | TBD | Before M1 |
+| Should comment re-anchoring run on every file view, on a push webhook from the Git provider, or on a scheduled background job? | TBD | Before DESIGN |
+| Which Git providers beyond GitHub and Bitbucket Server are required for v1? | TBD | Before DESIGN |
+| Should the ZTA token rotation strategy be fully automated (webhook) or require a manual refresh action in the UI? | TBD | Before DESIGN |
