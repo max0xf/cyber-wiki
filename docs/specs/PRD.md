@@ -469,11 +469,26 @@ The system **MUST** support threaded replies to inline comments (one level of ne
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-comment-storage`
 
-The system **MUST** persist inline comments in a configurable storage location: either (1) in a dedicated location within the repository, (2) in a dedicated separate repository, or (3) in a database. The storage location **MUST** be configurable to allow teams to choose the approach that best fits their security and access control requirements.
+The system **MUST** persist all inline comments in the platform database. This applies to **all inline comments** in the platform, including:
+- Comments on Cyber Wiki documents
+- Comments on Git provider files (source code, configuration files, etc.)
+- Comments on pull request diffs (if in-platform PR review is implemented in phase 2)
 
-**Rationale**: Making comment storage configurable keeps the security and access model simple by allowing teams to leverage existing Git repository permissions for comment access control (by storing comments in Git), or to use a separate cyber-wiki-comments repository with its own access controls, or to use a database for simpler management. This flexibility avoids the need to build complex permission systems within the platform itself.
+Each comment **MUST** be stored with the following metadata to enable retrieval and line anchoring:
+- Git provider identifier (e.g., `bitbucket_server`, `github`)
+- Project key / organization
+- Repository slug / name
+- Branch name
+- File path
+- Line range (start and end line numbers)
+- Comment content and author
+- Timestamp and status (open, resolved, deleted)
 
-**Actors**: `cpt-cyberwiki-actor-git-repo`
+**Access Control**: All authenticated users can comment on any file they can view, regardless of Git repository write permissions. The platform manages comment access control independently through its own permission system.
+
+**Rationale**: Database storage provides simple, centralized comment management without requiring Git write access for commenters. This enables the Commenter role to participate in reviews without needing repository write permissions, and avoids the complexity of syncing comments back to Git repositories.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
 ### 5.4 Change Review Workflow
 
@@ -1152,5 +1167,6 @@ Cyber Wiki depends on the following external integration contracts:
 | Should Git sync support webhook-triggered pushes in addition to polling? | TBD | Before DESIGN |
 | What is the expected maximum document corpus size beyond the 10,000 target? | TBD | Before M1 |
 | Should comment re-anchoring run on every file view, on a push webhook from the Git provider, or on a scheduled background job? | TBD | Before DESIGN |
+| Should users be able to see comments on repository files if they don't have access to view the repository itself? If yes, what information should be visible (comment content, file path, repository name)? | TBD | Before DESIGN |
 | Which Git providers beyond GitHub and Bitbucket Server are required for v1? | TBD | Before DESIGN |
 | Should the ZTA token rotation strategy be fully automated (webhook) or require a manual refresh action in the UI? | TBD | Before DESIGN |
