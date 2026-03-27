@@ -859,14 +859,44 @@ The system **MUST** allow users to create, list, and delete named personal API t
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-comment-line-anchoring`
 
-The system **MUST** implement a line-anchoring algorithm that tracks the current position of an inline comment as the file it is attached to evolves. At comment creation the system **MUST** capture: the exact commented line content, a SHA-256 hash of that content, 2–3 lines of context before and after, and the original line number. On every subsequent file view the system **MUST** recompute the comment's current line position and report one of four statuses:
+The system **MUST** implement a line-anchoring algorithm that tracks the current position of an inline comment as the file it is attached to evolves.
 
-- `anchored` — line content found at the same or a different position; `computed_line_number` updated
-- `moved` — line content found at a shifted position
-- `outdated` — exact line no longer present but context lines still match the surrounding area
-- `deleted` — neither line content nor context can be located in the current file
+**Capture Phase** (at comment creation):
+1. Normalize the commented line: trim leading/trailing whitespace, optionally normalize case (configurable)
+2. Store the normalized line string as the primary identifier
+3. Store the `original_line_number`
+4. Capture N context lines before and after (default N=3), each normalized using the same rules
 
-**Rationale**: Comments that silently disappear after file edits destroy review continuity; a content-hash + context-window algorithm provides resilient anchoring that survives reformatting, line insertions, and moderate refactors without requiring a full diff-apply engine.
+**Matching Phase** (on every file view):
+1. **Exact line matching**: Search the entire current file for exact matches of the normalized commented line
+   - If **single match** found:
+     - At same line number → status = `anchored`, `computed_line_number` = `original_line_number`
+     - At different line number → status = `moved`, `computed_line_number` = new line number
+   - If **multiple matches** found:
+     - Select the match nearest to `original_line_number` (minimum absolute distance)
+     - If multiple matches are equidistant, use diff-based position tracer (optional) or select the first occurrence
+     - Report status = `moved` if selected line differs from `original_line_number`, otherwise `anchored`
+   - If **no exact match** found → proceed to step 2
+
+2. **Context-window matching**: Attempt to locate the comment using surrounding context lines
+   - For each position in the file, count how many of the K captured context lines (before + after) match at that position
+   - If at least M of K context lines match (configurable majority rule, default M=ceil(K/2)):
+     - Status = `outdated`, `computed_line_number` = best-match position
+   - If no position meets the threshold → status = `deleted`, `computed_line_number` = null
+
+**Status Definitions**:
+- `anchored` — Exact normalized line found at the original position
+- `moved` — Exact normalized line found at a different position
+- `outdated` — Exact line not found, but context lines match (comment may be stale)
+- `deleted` — Neither exact line nor sufficient context can be located
+
+**Configuration Options**:
+- Line normalization: whitespace handling (trim, collapse, ignore), case sensitivity
+- Context window size N (default 3 lines before/after)
+- Context match threshold M/K (default majority: ceil(K/2))
+- Diff-based position tracer: optional fallback for disambiguation (conservative outdating)
+
+**Rationale**: Comments that silently disappear after file edits destroy review continuity. A deterministic line-normalization + exact string matching algorithm with context-window fallback provides resilient anchoring that survives reformatting, line insertions, and moderate refactors without requiring a full diff-apply engine. Explicit normalization rules and matching steps enable consistent implementation across the platform.
 
 **Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
