@@ -12,38 +12,41 @@
   - [2.2 System Actors](#22-system-actors)
 - [3. Operational Concept & Environment](#3-operational-concept--environment)
   - [3.1 Module-Specific Environment Constraints](#31-module-specific-environment-constraints)
-- [4. Scope](#4-scope)
-  - [4.1 In Scope](#41-in-scope)
-  - [4.2 Out of Scope](#42-out-of-scope)
-- [5. Functional Requirements](#5-functional-requirements)
-  - [5.1 Repository & Space Navigation](#51-repository--space-navigation)
-  - [5.2 Live Document Editing](#52-live-document-editing)
-  - [5.3 Contextual Inline Comments](#53-contextual-inline-comments)
-  - [5.4 Change Review Workflow](#54-change-review-workflow)
-  - [5.5 Rich Content Previews](#55-rich-content-previews)
-  - [5.6 Document Validation](#56-document-validation)
-  - [5.7 Git Synchronisation](#57-git-synchronisation)
-  - [5.8 Search](#58-search)
-  - [5.9 JIRA Integration](#59-jira-integration)
-  - [5.10 Access Control](#510-access-control)
-  - [5.11 VCS Integration](#511-vcs-integration)
-- [6. Non-Functional Requirements](#6-non-functional-requirements)
-  - [6.1 Module-Specific NFRs](#61-module-specific-nfrs)
-  - [6.2 NFR Exclusions](#62-nfr-exclusions)
-- [7. Public Library Interfaces](#7-public-library-interfaces)
-  - [7.1 Public API Surface](#71-public-api-surface)
-  - [7.2 External Integration Contracts](#72-external-integration-contracts)
-- [8. Use Cases](#8-use-cases)
+- [4. Competitors & Industry Analysis](#4-competitors--industry-analysis)
+  - [4.1 VCS Integration Patterns in Documentation Platforms](#41-vcs-integration-patterns-in-documentation-platforms)
+  - [4.2 Architectural Decision for Cyber Wiki](#42-architectural-decision-for-cyber-wiki)
+- [5. Scope](#5-scope)
+  - [5.1 In Scope](#51-in-scope)
+  - [5.2 Out of Scope](#52-out-of-scope)
+- [6. Functional Requirements](#6-functional-requirements)
+  - [6.1 Repository & Space Navigation](#61-repository--space-navigation)
+  - [6.2 Live Document Editing](#62-live-document-editing)
+  - [6.3 Contextual Inline Comments](#63-contextual-inline-comments)
+  - [6.4 Change Review Workflow](#64-change-review-workflow)
+  - [6.5 Rich Content Previews](#65-rich-content-previews)
+  - [6.6 Document Validation](#66-document-validation)
+  - [6.7 Git Synchronisation](#67-git-synchronisation)
+  - [6.8 Search](#68-search)
+  - [6.9 JIRA Integration](#69-jira-integration)
+  - [6.10 Access Control](#610-access-control)
+  - [6.11 VCS Integration](#611-vcs-integration)
+- [7. Non-Functional Requirements](#7-non-functional-requirements)
+  - [7.1 Module-Specific NFRs](#71-module-specific-nfrs)
+  - [7.2 NFR Exclusions](#72-nfr-exclusions)
+- [8. Public Library Interfaces](#8-public-library-interfaces)
+  - [8.1 Public API Surface](#81-public-api-surface)
+  - [8.2 External Integration Contracts](#82-external-integration-contracts)
+- [9. Use Cases](#9-use-cases)
   - [Edit and Commit a Document](#edit-and-commit-a-document)
   - [Authenticate and Configure Git Credentials](#authenticate-and-configure-git-credentials)
   - [Browse Repository File Tree](#browse-repository-file-tree)
   - [View File Content with Inline Comments](#view-file-content-with-inline-comments)
   - [View Pull Requests and Navigate to VCS Provider](#view-pull-requests-and-navigate-to-vcs-provider)
-- [9. Acceptance Criteria](#9-acceptance-criteria)
-- [10. Dependencies](#10-dependencies)
-- [11. Assumptions](#11-assumptions)
-- [12. Risks](#12-risks)
-- [13. Open Questions](#13-open-questions)
+- [10. Acceptance Criteria](#10-acceptance-criteria)
+- [11. Dependencies](#11-dependencies)
+- [12. Assumptions](#12-assumptions)
+- [13. Risks](#13-risks)
+- [14. Open Questions](#14-open-questions)
 
 <!-- /toc -->
 
@@ -206,9 +209,73 @@ The platform operates in a staging environment in v1; a production-grade deploym
 
 ---
 
-## 4. Scope
+## 4. Competitors & Industry Analysis
 
-### 4.1 In Scope
+### 4.1 VCS Integration Patterns in Documentation Platforms
+
+Modern documentation platforms implement VCS integration using two distinct architectural patterns: **Build-time Extraction** (static) and **Dynamic/API-driven Fetching** (real-time). Understanding these patterns is critical for Cyber Wiki's architecture.
+
+#### Docusaurus: Build-Time VCS Pattern
+
+Docusaurus treats Git as a metadata provider during static site generation (SSG). It does not interact with Git at runtime; instead, it scrapes the local `.git` folder during the build process.
+
+**Implementation Characteristics**:
+- **Git Metadata Extraction**: Executes Git commands (e.g., `git log -1 --format=%ct <file>`) locally on the build server to extract "Last Updated" timestamps
+- **CI/CD Constraint**: Requires `fetch-depth: 0` in CI pipelines to access full Git history; the default shallow clone (`fetch-depth: 1`) breaks metadata extraction
+- **Edit URLs**: Simple string interpolation pattern; appends relative file paths to a base `editUrl`
+- **Versioning**: Manages versions by copying files into `versioned_docs` directory and tracking in `versions.json`; Git tracks snapshots but versioning logic is filesystem-based
+- **Update Latency**: Changes require full site rebuild (typically 5-10 minutes in CI/CD)
+
+**Limitations**:
+- No real-time updates; documentation lags behind source code by the build duration
+- Build-time failures block all documentation updates
+- Metadata staleness between builds
+
+#### Fumadocs: Dynamic/API Integration Pattern
+
+Fumadocs, built on Next.js App Router, treats Git as a **remote data source** and is designed for high-frequency updates and real-time documentation.
+
+**Implementation Characteristics**:
+- **Remote Content Fetching**: Fetches content directly from GitHub API at runtime using `GITHUB_TOKEN`
+- **Hybrid Sync Model**:
+  - **Production**: Uses Incremental Static Regeneration (ISR); fetches latest Markdown from GitHub via API, renders, and caches; changes appear without full site rebuild
+  - **Local/Dev**: Uses Git submodules; clones target content repo into subdirectory for local file watching
+- **Live Metadata**: Fetches author avatars, commit timestamps, and contributor data via GitHub API in real-time
+- **Code Integration**: Supports Twoslash for pulling type definitions from source code and displaying them as hovers in documentation
+- **Update Latency**: Changes visible within seconds via ISR revalidation
+
+**Advantages**:
+- Near-instant documentation updates (no CI rebuild required)
+- Live metadata (e.g., "Last edited by" with GitHub avatars)
+- Decoupled from build pipeline; documentation updates independent of site deployment
+
+### 4.2 Architectural Decision for Cyber Wiki
+
+**Cyber Wiki adopts the Dynamic/API Integration pattern** (Fumadocs model) as the primary VCS integration strategy for the following reasons:
+
+1. **Real-time Accuracy**: Engineering teams need documentation that reflects the current state of the codebase without waiting for CI builds
+2. **Decoupled Updates**: Documentation changes should not require full application redeployment
+3. **Live Collaboration**: Inline comments, PR reviews, and file browsing require real-time data from the VCS provider
+4. **Metadata Richness**: Dynamic API access enables features like live author avatars, real-time PR status, and up-to-date commit history
+
+**Comparative Analysis**:
+
+| Feature | Docusaurus (Build-time) | Fumadocs (Dynamic/API) | Cyber Wiki Choice |
+|---------|-------------------------|------------------------|-------------------|
+| Data Source | Local `.git` folder | VCS Provider API | **VCS Provider API** |
+| Update Latency | 5-10 min (CI build) | Seconds (ISR) | **Seconds (real-time)** |
+| Metadata | Scraped during build | Fetched via API | **API-driven (live)** |
+| Versioning | Filesystem snapshots | Branch/Tag mapping | **Branch mapping** |
+| Complexity | Low (CLI commands) | Medium (API handling) | **Medium (justified by features)** |
+| Infrastructure | Static hosting | Server/serverless | **Server-based** |
+
+**Requirement**: The system **MUST** implement VCS integration using the Dynamic/API pattern, fetching content, metadata, and repository information from VCS provider APIs at runtime rather than during build-time extraction. This enables the "Living Document" model where changes pushed to the VCS provider appear in the platform within seconds.
+
+---
+
+## 5. Scope
+
+### 5.1 In Scope
 
 - Web-based browsing and editing of Git-backed documents (Markdown focus)
 - Live editing with immediate rich preview (Markdown, diagrams, tables)
@@ -224,7 +291,7 @@ The platform operates in a staging environment in v1; a production-grade deploym
 - Access control inherited from Git repository permissions
 - Self-hosted, single-team deployment
 
-### 4.2 Out of Scope
+### 5.2 Out of Scope
 
 - Production deployment (staging only in v1)
 - Mobile native applications
@@ -235,9 +302,9 @@ The platform operates in a staging environment in v1; a production-grade deploym
 
 ---
 
-## 5. Functional Requirements
+## 6. Functional Requirements
 
-### 5.1 Repository & Space Navigation
+### 6.1 Repository & Space Navigation
 
 #### Browse Repositories and Spaces
 
@@ -493,7 +560,115 @@ Each comment **MUST** be stored with the following metadata to enable retrieval 
 
 **Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
-### 5.4 Change Review Workflow
+#### Comment System Integration Options
+
+The platform's comment architecture follows a **database-native** pattern rather than VCS-backed storage. This section analyzes alternative comment integration patterns observed in modern documentation platforms to inform future extensibility decisions.
+
+**Industry Patterns**:
+
+1. **Disqus (Third-Party Platform)**
+   - **Mechanism**: Standalone, third-party commenting service; embeds via JavaScript snippet; comments stored on Disqus servers
+   - **Authentication**: Social login (Google, Facebook, Twitter) or native Disqus account
+   - **Advantages**: Plug-and-play; powerful moderation dashboard; works with any website; no backend infrastructure required
+   - **Limitations**: Comments stored in proprietary external database; free version includes ads and user tracking; vendor lock-in; comments not portable with repository
+   - **Privacy**: Tracks users for analytics/marketing; not privacy-focused
+   - **Use Case**: General audience websites, blogs, news sites
+
+2. **Giscus (GitHub Discussions Frontend)**
+   - **Mechanism**: Open-source React component that embeds GitHub Discussions as a comment widget; uses GitHub Discussions API as backend
+   - **Authentication**: GitHub account required (OAuth)
+   - **Advantages**: Zero backend infrastructure; comments stored in GitHub Discussions (open, portable); no ads or tracking; supports Markdown and reactions; comments move with repository
+   - **Limitations**: GitHub-only; no line-level anchoring; requires public repository for public comments; users must have GitHub accounts
+   - **Privacy**: No tracking; privacy-focused; fully transparent
+   - **Use Case**: Developer documentation, technical wikis, GitHub-integrated projects
+
+3. **GitHub Discussions Integration (Fumadocs Pattern)**
+   - **Mechanism**: Uses GitHub Discussions API as comment backend; feedback components post comments directly to GitHub repository discussions
+   - **Advantages**: Leverages existing GitHub authentication; comments visible in GitHub UI; no separate comment database required
+   - **Limitations**: Requires GitHub as VCS provider; comments tied to repository discussions rather than specific file lines; limited line-anchoring support
+   - **Use Case**: Page-level or section-level feedback rather than line-level code review
+
+4. **Confluence (Enterprise Wiki Platform)**
+   - **Mechanism**: Proprietary inline comment system; comments stored in Confluence database; supports page-level and inline (paragraph/block) comments
+   - **Authentication**: Atlassian account or SSO integration
+   - **Advantages**: Excellent inline comment UX; threaded discussions; rich formatting; @mentions and notifications; comment resolution workflow; mature moderation tools
+   - **Limitations**: No Git integration; comments not linked to code or file versions; no line-level anchoring for code files; limited code rendering options; requires Confluence license
+   - **Privacy**: Enterprise-grade; data stored in Atlassian Cloud or self-hosted
+   - **Use Case**: Enterprise documentation, knowledge bases, project wikis (non-technical content)
+
+5. **Database-Native with VCS Sync (Cyber Wiki Approach)**
+   - **Mechanism**: Comments stored in platform database with VCS metadata (repo, branch, file path, line range); optionally synced to VCS as commit annotations or PR comments
+   - **Advantages**: Full control over comment features (line anchoring, threading, status); works with any VCS provider; supports line-level and range-level comments; comments visible alongside ongoing PR changes
+   - **Limitations**: Requires database infrastructure; comments not visible in native VCS UI unless synced
+   - **Use Case**: Code review, documentation review, inline collaboration with Git integration
+
+**Comparison Table**:
+
+| Feature | Disqus | Giscus | GitHub Discussions | Confluence | Database-Native (Cyber Wiki) |
+|---------|--------|--------|-------------------|------------|------------------------------|
+| Data Storage | Disqus Servers | GitHub Discussions | GitHub Discussions | Confluence Database | Platform Database |
+| Authentication | Social (FB, Google, etc.) | GitHub Only | GitHub Only | Atlassian/SSO | SSO/OIDC |
+| Cost | Free (with ads) or Paid | Always Free | Always Free | License Required | Infrastructure cost |
+| Privacy | Tracks users for ads | No tracking | No tracking | Enterprise-grade | No tracking |
+| Formatting | Basic HTML | Full Markdown | Full Markdown | Rich Text + Markdown | Full Markdown |
+| Line-Level Comments | No | No | No | No | **Yes** |
+| Inline Comment UX | Basic | Good | Good | **Excellent** | **Excellent** (Confluence-like) |
+| Git Integration | No | Yes (GitHub only) | Yes (GitHub only) | **No** | **Yes (Multi-VCS)** |
+| Code Rendering | No | Yes | Yes | **Limited** | **Yes (Syntax highlighting)** |
+| PR Integration | No | No | No | No | **Yes (comments visible with PR changes)** |
+| Multi-VCS Support | Yes | No | No | No | **Yes** |
+| Comment Portability | Vendor lock-in | Moves with repo | Moves with repo | Vendor lock-in | Database export |
+| Threaded Discussions | Yes | Yes | Yes | **Yes** | **Yes** |
+| Resolution Workflow | Basic | Reactions only | Reactions only | **Yes** | **Yes** |
+| Backend Required | No | No | No | Yes (Confluence) | Yes |
+| Alignment | General Audience | Developers | Developers | Enterprise Docs | **Code Review + Docs** |
+
+**Architectural Decision for Cyber Wiki**:
+
+Cyber Wiki requires a **flexible, extensible, Confluence-like inline comment system with deep Git integration** (option 5: database-native pattern). While each existing solution offers valuable concepts, none meets all requirements:
+
+**Why Not Third-Party Solutions**:
+
+1. **Disqus**: Comments stored on external servers (vendor lock-in); no control over data; tracking/ads in free version; no line-level anchoring; no Git integration
+2. **Giscus / GitHub Discussions**: GitHub-only (not multi-VCS); page-level comments only (no line-level anchoring); comments not visible alongside ongoing PR changes; requires GitHub accounts for all users
+3. **Confluence**: Excellent inline comment UX but **no Git integration**; comments not linked to code versions or file changes; **limited code rendering options**; no line-level anchoring for code files; requires expensive license
+
+**Why Database-Native (Cyber Wiki Approach)**:
+
+The platform adopts a **database-native comment system inspired by Confluence's inline comment UX** but extended with Git and PR integration:
+
+- **Confluence-Like UX**: Threaded discussions, rich formatting, @mentions, notifications, comment resolution workflow, mature moderation tools
+- **Line-Level Anchoring**: Sophisticated algorithms track comment positions as files evolve through Git commits; not supported by any existing solution
+- **Git Integration**: Comments linked to specific commits, branches, and file versions; comments visible in context of file history
+- **PR Workflow Integration**: **Comments must be visible alongside ongoing PR changes**; users can comment on files in active PRs and see those comments update as the PR evolves
+- **Multi-VCS Support**: Works consistently across GitHub, Bitbucket, GitLab, etc.; not tied to a single VCS provider
+- **Data Ownership**: Comments stored in platform database; no vendor lock-in; full control over data export and privacy
+- **Access Control Flexibility**: Users without VCS write permissions can comment (Commenter role); decoupled from repository permissions
+- **Code Rendering**: Full syntax highlighting and code-specific features that Confluence lacks
+
+**Key Requirement**: The system **cannot store comments on external servers** (Disqus, Giscus) because:
+- Comments must be tightly integrated with VCS metadata (repo, branch, file path, line range)
+- Comments must remain visible and anchored as files change through Git commits and PR updates
+- The platform needs full control over comment lifecycle, threading, status, and line-anchoring algorithms
+
+**Conclusion**: Cyber Wiki needs its own **flexible and extensible comment system** that combines:
+- **Confluence's excellent inline comment UX** (threading, resolution, @mentions)
+- **Git-native integration** (line anchoring, version tracking, PR workflow)
+- **Multi-VCS support** (GitHub, Bitbucket, GitLab)
+- **Code-first features** (syntax highlighting, line-level precision)
+
+This approach takes the best concepts from competitors (Confluence UX, Giscus simplicity, GitHub Discussions threading) while building a system that meets the unique requirements of Git-integrated documentation and code review.
+
+**Optional VCS Sync (Future)**:
+
+The platform **MAY** implement optional VCS sync in future versions to make comments visible in the native VCS UI:
+- **GitHub**: Sync comments as PR review comments or commit annotations via GitHub API
+- **Bitbucket**: Sync comments as inline PR comments via Bitbucket API
+- **Bidirectional Sync**: Import comments created in VCS UI back into platform database
+
+This sync would be **optional** and **unidirectional by default** (platform → VCS) to avoid conflicts with the platform's line-anchoring algorithm.
+
+### 6.4 Change Review Workflow
 
 #### Propose Pending Changes
 
@@ -905,9 +1080,9 @@ The system **MUST** implement a line-anchoring algorithm that tracks the current
 
 ---
 
-## 6. Non-Functional Requirements
+## 7. Non-Functional Requirements
 
-### 6.1 Module-Specific NFRs
+### 7.1 Module-Specific NFRs
 
 #### Search Response Time
 
@@ -993,7 +1168,7 @@ The system **MUST** support light and dark display themes selectable per user. T
 
 **Rationale**: Dark mode is a standard expectation for developer-facing tools; per-user persistence avoids repeated reconfiguration.
 
-### 6.2 NFR Exclusions
+### 7.2 NFR Exclusions
 
 - **Multi-region availability**: Not applicable in v1 — single-node staging deployment only.
 - **Horizontal scalability under high load**: Not applicable in v1 — single-team usage, no public traffic.
@@ -1001,13 +1176,13 @@ The system **MUST** support light and dark display themes selectable per user. T
 
 ---
 
-## 7. Public Library Interfaces
+## 8. Public Library Interfaces
 
-### 7.1 Public API Surface
+### 8.1 Public API Surface
 
 Not applicable — Cyber Wiki is an end-user web application, not a library. It does not expose a programmatic API surface for external consumers in v1.
 
-### 7.2 External Integration Contracts
+### 8.2 External Integration Contracts
 
 Cyber Wiki depends on the following external integration contracts:
 
@@ -1018,7 +1193,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
-## 8. Use Cases
+## 9. Use Cases
 
 ### Edit and Commit a Document
 
@@ -1171,7 +1346,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
-## 9. Acceptance Criteria
+## 10. Acceptance Criteria
 
 - [ ] An Editor can open, edit, and commit a Markdown document entirely from the browser without a local Git client
 - [ ] An Editor can apply standard formatting (bold, italic, strikethrough, links, lists) and see identical rendering in edit preview and read-only view
@@ -1215,7 +1390,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
-## 10. Dependencies
+## 11. Dependencies
 
 | Dependency | Description | Criticality |
 |------------|-------------|-------------|
@@ -1226,7 +1401,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
-## 11. Assumptions
+## 12. Assumptions
 
 - Teams operate a single self-hosted instance per team; multi-tenancy is not required in v1.
 - The primary document format is Markdown; support for other formats is not in scope for v1.
@@ -1242,7 +1417,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
-## 12. Risks
+## 13. Risks
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
@@ -1254,7 +1429,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 ---
 
-## 13. Open Questions
+## 14. Open Questions
 
 | Question | Owner | Target Resolution |
 |----------|-------|-------------------|
