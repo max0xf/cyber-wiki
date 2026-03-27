@@ -822,9 +822,36 @@ The system **MAY** allow users to open a PR within the platform, view its change
 
 - [ ] `p2` - **ID**: `cpt-cyberwiki-fr-api-token-management`
 
-The system **MUST** allow users to create, list, and delete named personal API tokens that can be used to authenticate programmatic access (CI, scripts) to the platform. API tokens **MUST** be distinct from the Git provider credentials configured in the Profile settings.
+The system **MUST** allow users to create, list, and delete named personal API tokens that can be used to authenticate programmatic access (CI, scripts) to the platform. API tokens **MUST** be distinct from the Git provider OAuth/ZTA tokens.
 
-**Rationale**: CI pipelines and scripts need a stable, revocable credential that does not expose the user's primary Git token; named tokens with individual revocation capability provide that without requiring service accounts.
+**Token Format**:
+- Tokens **MUST** be opaque random strings with minimum 128 bits of entropy (e.g., UUID v4 or cryptographically secure random bytes encoded as base64)
+- Tokens **MUST** be prefixed with a version identifier (e.g., `cwt_v1_`) to enable format evolution
+
+**Token Expiration**:
+- Default lifetime **MUST** be 90 days
+- Maximum lifetime **MUST** be 365 days
+- Users **MAY** specify custom expiration at creation time within the maximum limit
+- Expired tokens **MUST** be rejected immediately with a 401 Unauthorized response
+
+**Token Scope**:
+- For v1, tokens **MUST** grant full user-level access (same permissions as the creating user's interactive session)
+- Scope model for future versions **MAY** include role-limited, repository-scoped, or granular read/write scopes
+- Token scope **MUST** be stored with the token and enforced on every API request
+
+**Token Revocation**:
+- Revocation **MUST** take effect immediately (no grace period)
+- Revoked tokens **MUST** be rejected with a 401 Unauthorized response
+- Token validation **MUST** check revocation status on every request (no client-side caching of token validity)
+
+**Audit Events**:
+- The system **MUST** log the following events with timestamp, actor (user ID), and token ID:
+  - Token creation (including token name and expiration)
+  - Token usage (API endpoint accessed, success/failure)
+  - Token revocation (including whether revoked by owner or admin)
+- Audit logs **MUST** be retained for at least 90 days
+
+**Rationale**: CI pipelines and scripts need a stable, revocable credential that does not expose the user's primary Git token; named tokens with individual revocation capability provide that without requiring service accounts. Explicit token format, expiration, scope, and auditing requirements enable implementers to design secure storage, validation, and enforcement mechanisms.
 
 **Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`
 
