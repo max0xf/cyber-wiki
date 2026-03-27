@@ -114,6 +114,7 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 |------|------------|
 | Space | A top-level organisational unit that groups related documents, optionally linked to a Git repository |
 | Document | A file (typically Markdown) stored within a Space, version-controlled through Git |
+| Git Provider | An external Git hosting service (e.g., GitHub, Bitbucket Server) accessed via an abstract pluggable interface; v1 supports GitHub and Bitbucket Server, and the interface allows further providers to be added without changing application logic |
 | Inline Comment | An annotation anchored to a line range within a Document, visible to all readers |
 | Pending Change | A proposed edit submitted by a Commenter for review and approval by an Editor or Admin |
 | Change Record | An immutable audit entry created each time a Document is saved or synced |
@@ -167,9 +168,9 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 
 **ID**: `cpt-cyberwiki-actor-git-repo`
 
-**Role**: External source-of-truth for document content; the platform reads from and writes to repositories via Git protocols.
+**Role**: External source-of-truth for document content; the platform reads from and writes to repositories via a pluggable Git provider backend. In v1 the supported providers are GitHub and Bitbucket Server; the abstract provider interface allows additional providers to be added in future versions.
 
-**Integration**: Bidirectional — platform reads content (Git → Wiki) and writes commits (Wiki → Git) via SSH/HTTPS Git protocols.
+**Integration**: Bidirectional — platform reads content (Git → Wiki) and writes commits (Wiki → Git) via the Git provider's API. Provider selection and base URL are configurable per user.
 
 **Availability**: If the Git provider is unreachable, the platform operates in read-only mode; sync operations are queued and retried when connectivity is restored.
 
@@ -215,6 +216,8 @@ The platform operates in a staging environment in v1; a production-grade deploym
 - Pending Changes workflow: propose → review → approve/reject
 - Immutable change history per document
 - Bidirectional Git synchronisation with configurable direction and schedule
+- Pluggable Git provider backend: GitHub and Bitbucket Server supported in v1; abstract interface supports adding further providers (GitLab, Azure DevOps) without changing application logic
+- Repository browsing, file tree navigation, and pull request listing via the Git provider interface
 - Configurable document validators (link checking, schema validation, custom rules)
 - JIRA integration: inline status badges, issue views (grid, chart, Gantt), and issue search within the app
 - Full-text and semantic (AI-powered) search across all accessible documents
@@ -616,9 +619,9 @@ The system **MUST** support pluggable custom validators (e.g., CTI-specific rule
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-git-sync`
 
-The system **MUST** support bidirectional synchronisation between a Space and a linked Git repository, with configurable sync direction (repository → wiki, wiki → repository, or both) and schedule.
+The system **MUST** support bidirectional synchronisation between a Space and a linked Git repository, with configurable sync direction (repository → wiki, wiki → repository, or both) and schedule. All sync operations **MUST** be performed through the pluggable Git provider interface (`cpt-cyberwiki-fr-git-provider-backend`) so that sync works consistently across all supported providers.
 
-**Rationale**: Git is the source of truth; the sync keeps the platform in alignment with changes made via other Git clients and ensures edits made in the wiki reach the repository.
+**Rationale**: Git is the source of truth; the sync keeps the platform in alignment with changes made via other Git clients and ensures edits made in the wiki reach the repository. Routing sync through the provider interface ensures it benefits from the same provider abstraction as browsing and PR listing.
 
 **Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-git-repo`, `cpt-cyberwiki-actor-ci`
 
@@ -1207,6 +1210,8 @@ Cyber Wiki depends on the following external integration contracts:
 - [ ] Selecting a changed file in a PR renders its diff with old and new line numbers, context lines, deletion lines highlighted red, and addition lines highlighted green
 - [ ] The user can navigate between change hunks in a diff using previous/next chunk controls
 - [ ] A user can select a line in a PR diff and add an inline comment; the comment is persisted with the same line-anchoring metadata as file-view comments
+- [ ] A user can switch between GitHub and Bitbucket Server as their Git provider in Profile settings; all repository browsing, file tree navigation, and PR listing features work correctly for the selected provider without any code changes to the application logic
+- [ ] A user can configure a custom base URL for the selected Git provider to support self-hosted instances (e.g., an on-premises Bitbucket Server)
 
 ---
 
@@ -1214,7 +1219,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 | Dependency | Description | Criticality |
 |------------|-------------|-------------|
-| Git Provider | Hosts the source repositories; required for Git sync | p1 |
+| Git Provider | Pluggable backend; v1 supports GitHub and Bitbucket Server; abstract interface allows further providers | p1 |
 | JIRA Instance | Provides issue metadata for inline badges and search | p2 |
 | Vector Database | Stores document embeddings for semantic search | p1 |
 | Embedding Service | Generates vector embeddings from document content | p1 |
@@ -1226,6 +1231,7 @@ Cyber Wiki depends on the following external integration contracts:
 - Teams operate a single self-hosted instance per team; multi-tenancy is not required in v1.
 - The primary document format is Markdown; support for other formats is not in scope for v1.
 - Git is always available as the underlying storage; the platform does not operate in an offline-first mode.
+- v1 supports exactly two Git providers: GitHub and Bitbucket Server. The pluggable provider interface allows additional providers (GitLab, Azure DevOps, etc.) to be added in future versions without changing application logic.
 - JIRA integration is optional; teams without JIRA can use the platform without configuring it.
 - The embedding/vector search service is available as an external dependency; the platform integrates with it rather than hosting its own model.
 - Staging deployment is the only target environment for v1; production hardening is deferred.
@@ -1244,6 +1250,7 @@ Cyber Wiki depends on the following external integration contracts:
 | Semantic search quality is insufficient for domain-specific jargon | MEDIUM — users abandon search and fall back to manual browsing | Allow teams to tune embedding models or supplement with keyword search as a fallback |
 | Validator false positives block legitimate saves | MEDIUM — Editor frustration, validation bypassed | All validators must support an explicit override with a reason logged to the Change Record |
 | draw.io rendering adds significant bundle size or latency | LOW — slower page loads | Lazy-load the draw.io renderer only when a draw.io file is detected on the page |
+| Git provider API differences break the abstract interface contract | MEDIUM — a new provider behaves differently from the interface specification, causing silent failures or missing operations | Define the interface contract with explicit error semantics; validate each provider implementation against a shared test suite before release |
 
 ---
 
