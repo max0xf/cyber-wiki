@@ -38,7 +38,7 @@
   - [Authenticate and Configure Git Credentials](#authenticate-and-configure-git-credentials)
   - [Browse Repository File Tree](#browse-repository-file-tree)
   - [View File Content with Inline Comments](#view-file-content-with-inline-comments)
-  - [Review Pull Request Diff](#review-pull-request-diff)
+  - [View Pull Requests and Navigate to Git Provider](#view-pull-requests-and-navigate-to-git-provider)
 - [9. Acceptance Criteria](#9-acceptance-criteria)
 - [10. Dependencies](#10-dependencies)
 - [11. Assumptions](#11-assumptions)
@@ -694,7 +694,7 @@ The system **MUST** allow users to search JIRA issues from within the platform w
 
 The system **MUST** authenticate all users before granting access to any space or document; the platform **MUST** support SSO/OIDC integration for user authentication. Username/password authentication is explicitly out of scope for v1.
 
-**Rationale**: SSO/OIDC authentication eliminates credential storage risks and integrates with existing enterprise identity providers. This aligns with the Git provider authentication approach (ZTA tokens, OAuth) and provides a consistent security model across the platform.
+**Rationale**: SSO/OIDC authentication eliminates credential storage risks and integrates with existing enterprise identity providers, providing a consistent security model across the platform.
 
 **Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
@@ -810,9 +810,9 @@ The system **MUST** list pull requests for a repository (filterable by state: op
 
 #### In-Platform Pull Request Diff Review
 
-- [ ] `p3` - **ID**: `cpt-cyberwiki-fr-pr-diff-review` **(Phase 2 / Future)**
+- [ ] `p3` - **ID**: `cpt-cyberwiki-fr-pr-diff-review`
 
-The system **MAY** allow users to open a PR within the platform, view its changed-files list (with addition/deletion counts per file), select a file to view its full diff with hunk-level navigation (previous/next chunk), and see deletion and addition lines distinguished by background colour with old and new line numbers.
+**(Phase 2 / Future)** The system **MAY** allow users to open a PR within the platform, view its changed-files list (with addition/deletion counts per file), select a file to view its full diff with hunk-level navigation (previous/next chunk), and see deletion and addition lines distinguished by background colour with old and new line numbers.
 
 **Rationale**: In-platform PR review would remove the need to switch to the Git host for reviewing proposed changes, but is deferred to phase 2 to reduce v1 complexity. The external view link provides sufficient functionality for v1.
 
@@ -822,7 +822,7 @@ The system **MAY** allow users to open a PR within the platform, view its change
 
 - [ ] `p2` - **ID**: `cpt-cyberwiki-fr-api-token-management`
 
-The system **MUST** allow users to create, list, and delete named personal API tokens that can be used to authenticate programmatic access (CI, scripts) to the platform. API tokens **MUST** be distinct from the Git provider OAuth/ZTA tokens.
+The system **MUST** allow users to create, list, and delete named personal API tokens that can be used to authenticate programmatic access (CI, scripts) to the platform. API tokens **MUST** be distinct from the Git provider OAuth tokens used to access Git repositories.
 
 **Token Format**:
 - Tokens **MUST** be opaque random strings with minimum 128 bits of entropy (e.g., UUID v4 or cryptographically secure random bytes encoded as base64)
@@ -972,9 +972,11 @@ The system **MUST** be operable by non-engineers (product managers, designers) w
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-nfr-credential-security`
 
-All user credentials stored by the platform — including Git provider tokens, Confluence tokens, JIRA tokens, and ZTA tokens — **MUST** be encrypted at rest using symmetric encryption with a key that is never stored alongside the data. The plaintext of any credential **MUST NOT** be written to the database, application logs, or any audit record. The application **MUST** use a configurable encryption key (distinct from the application secret key) so that key rotation is possible without re-deploying the application.
+All user credentials stored by the platform — including Confluence tokens and JIRA tokens — **MUST** be encrypted at rest using symmetric encryption with a key that is never stored alongside the data. The plaintext of any credential **MUST NOT** be written to the database, application logs, or any audit record. The application **MUST** use a configurable encryption key (distinct from the application secret key) so that key rotation is possible without re-deploying the application.
 
-**Threshold**: Zero credentials stored in plaintext; encryption key is externally configurable
+**Note**: Git provider access tokens (GitHub OAuth, Bitbucket ZTA) are not stored by the platform; they are obtained via the provider's OAuth/SSO flow and held only for the duration of the user session. This NFR applies to any service credentials (e.g., Confluence, JIRA) that require persistent storage.
+
+**Threshold**: Zero stored credentials in plaintext; encryption key is externally configurable
 
 **Rationale**: User credentials for external services are high-value secrets; accidental database exposure must not also expose Git or JIRA tokens. A configurable, separately managed key enables key rotation and meets baseline secret-management expectations for an internal engineering tool.
 
@@ -1066,7 +1068,7 @@ Cyber Wiki depends on the following external integration contracts:
 
 **Postconditions**:
 - User session is active; all subsequent API calls are authenticated via SSO token
-- Git provider access is established via OAuth/ZTA without credential storage
+- Git provider access is established via the provider's OAuth flow (GitHub) or ZTA flow (Bitbucket Server) without credential storage
 
 **Alternative Flows**:
 - **SSO authentication failure**: System returns to login page with error message; user must retry authentication
@@ -1257,4 +1259,4 @@ Cyber Wiki depends on the following external integration contracts:
 | Should comment re-anchoring run on every file view, on a push webhook from the Git provider, or on a scheduled background job? | TBD | Before DESIGN |
 | Should users be able to see comments on repository files if they don't have access to view the repository itself? If yes, what information should be visible (comment content, file path, repository name)? | TBD | Before DESIGN |
 | Which Git providers beyond GitHub and Bitbucket Server are required for v1? | TBD | Before DESIGN |
-| Should the ZTA token rotation strategy be fully automated (webhook) or require a manual refresh action in the UI? | TBD | Before DESIGN |
+| For Bitbucket Server: should ZTA token refresh be fully automated (background renewal) or require a manual re-authenticate action in the UI? | TBD | Before DESIGN |
