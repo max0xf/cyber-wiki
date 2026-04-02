@@ -103,12 +103,12 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 - REST API access for AI agents (CyPilot) to read, search, and analyze documentation content
 - Leave context-aware inline comments that survive content changes (comments are flagged when anchored text is removed)
 - Preview rich content: Markdown, sequence diagrams, draw.io diagrams, tables
-- Validate documents against configurable rules before saving
+- Validate documents against configurable rules before saving (Admins configure validation rules per Space to enforce link integrity, schema compliance, and custom domain-specific requirements; prevents broken links and malformed documents)
 - Synchronise document changes bidirectionally with Git repositories
 - Surface JIRA issue data (status, assignee, priority) inline in documents
 - Search documentation semantically using AI-powered embeddings
 - Edit Markdown with WYSIWYG editor — headings, styles, tables, links
-- Global documentation space system with configurable Git repositories attached and configurable lists of files and folders to be discoverable
+- Multi-repository documentation workspace (Admins configure which Git repositories are accessible as Spaces, which files/folders are discoverable, and how documents are organized; enables unified documentation access across multiple repositories without requiring users to know Git repository locations)
 - Integration with notification systems for document creation and updates — send emails, send notifications to Teams/Slack
 - Integrated chat where users can ask questions, review documents, and collaborate
 - Integrated AI assistant for inline document editing that can fix misprints, suggest better wording, and improve content
