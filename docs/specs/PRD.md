@@ -110,7 +110,7 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 - Surface JIRA issue data (status, assignee, priority) inline in documents
 - Full-text search across all documents with exact keyword matching, file/folder filtering, and highlighted results (basic search that works reliably first)
 - Optional semantic search using AI-powered embeddings for relevance-ranked results (enhancement for exploratory queries when exact keywords aren't known)
-- Edit Markdown with WYSIWYG editor — headings, styles, tables, links
+- Edit documents with WYSIWYG editor by default (headings, styles, tables, links render as formatted content while editing) with optional raw editing mode toggle for developers who need to see/edit underlying Markdown/HTML source
 - Multi-repository documentation workspace (Admins configure which Git repositories are accessible as Spaces, which files/folders are discoverable, and how documents are organized; enables unified documentation access across multiple repositories without requiring users to know Git repository locations)
 - Configurable notification system for document changes (users subscribe to specific documents, folders, or Spaces; choose notification channels per subscription — email, Teams, Slack; prevents notification flooding by requiring explicit opt-in per document/folder)
 - Embedded AI chat interface for documentation assistance (LLM-powered assistant with full documentation context enables users to ask questions, request summaries, and explore content conversationally)
@@ -400,13 +400,15 @@ The API **MUST** return structured responses (JSON) suitable for programmatic co
 
 ### 6.3 Live Document Editing
 
-#### In-Browser Editing with Live Preview
+#### WYSIWYG Editing with Optional Raw Mode
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-live-edit`
 
-The system **MUST** allow Editors to edit document content directly in the browser with a live preview rendered alongside or in place of the raw text.
+The system **MUST** allow Editors to edit document content directly in the browser using a WYSIWYG editor by default. The WYSIWYG editor **MUST** render formatting (headings, bold, underline, colors, tables, links) as formatted content while editing, with no separate preview mode. The underlying file format (Markdown, HTML, etc.) **MUST** be transparent to users in WYSIWYG mode.
 
-**Rationale**: Eliminates the need for a local Git client or local Markdown renderer, reducing contribution friction to zero for engineers and non-engineers alike.
+The system **MUST** provide a toggle to switch between WYSIWYG mode and raw editing mode. In raw editing mode, users can view and edit the underlying Markdown/HTML source directly. Users **MUST** be able to switch between modes at any time without losing unsaved changes.
+
+**Rationale**: WYSIWYG editing eliminates the need for non-technical users (PMs, designers) to learn Markdown syntax or understand file formats, reducing contribution friction to zero. Raw editing mode preserves the ability for developers and technical users to work directly with source when needed (e.g., for complex formatting, troubleshooting, or preference).
 
 **Actors**: `cpt-cyberwiki-actor-editor`
 
@@ -1220,18 +1222,18 @@ Cyber Wiki depends on the following external integration contracts:
 
 **Main Flow**:
 1. Editor opens the document in the browser
-2. Editor switches to edit mode; live preview appears alongside the editor
+2. Editor switches to edit mode; document opens in WYSIWYG editor by default (titles, bold, underline, colors, tables render as formatted content while editing; no separate preview mode)
 3. Editor makes changes; validators run in the background and surface issues inline
 4. Editor resolves any validation errors
-5. Editor saves the change to a personal branch
-6. Editor commits/merges the branch to main via the UI
-7. System creates a Change Record and triggers a Git sync
+5. Editor clicks "Save" button; system automatically handles Git commit/push operations without requiring Editor to interact with Git commands
+6. System creates a Change Record and triggers a Git sync
 
 **Postconditions**:
 - Document content is updated in the Space and committed to the linked Git repository
 - A Change Record is created with author, timestamp, and diff
 
 **Alternative Flows**:
+- **Raw editing mode**: Developer/technical user can toggle to raw editing mode to see and edit the underlying Markdown/HTML source directly; toggle back to WYSIWYG at any time
 - **Validation failure**: System blocks save and highlights the failing validator; Editor must resolve before proceeding
 - **Merge conflict**: System detects conflict during sync and notifies the Admin
 
