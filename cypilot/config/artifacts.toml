@@ -38,3 +38,13 @@ required = false
 [systems.autodetect.validation]
 require_kind_registered_in_kit = true
 require_md_extension = true
+
+[systems.autodetect.artifacts.FRONTEND_DESIGN]
+pattern = "frontend/DESIGN.md"
+traceability = "FULL"
+required = false
+
+[systems.autodetect.artifacts.BACKEND_DESIGN]
+pattern = "backend/DESIGN.md"
+traceability = "FULL"
+required = false
