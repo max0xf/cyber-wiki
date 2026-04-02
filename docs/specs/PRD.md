@@ -110,9 +110,9 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 - Edit Markdown with WYSIWYG editor — headings, styles, tables, links
 - Multi-repository documentation workspace (Admins configure which Git repositories are accessible as Spaces, which files/folders are discoverable, and how documents are organized; enables unified documentation access across multiple repositories without requiring users to know Git repository locations)
 - Configurable notification system for document changes (users subscribe to specific documents, folders, or Spaces; choose notification channels per subscription — email, Teams, Slack; prevents notification flooding by requiring explicit opt-in per document/folder)
-- Integrated chat where users can ask questions, review documents, and collaborate
-- Integrated AI assistant for inline document editing that can fix misprints, suggest better wording, and improve content
-- Support integration with local LLM models for misprint detection and content enhancement
+- Embedded AI chat interface for documentation assistance (LLM-powered assistant with full documentation context enables users to ask questions, request summaries, and explore content conversationally)
+- Inline AI editing assistance (integrate LLM-based assistants such as CyPilot, Claude, GPT, or local models to fix misprints, suggest better wording, and improve content directly within the editor)
+- Support integration with local LLM models for AI-powered editing and content enhancement
 
 ### 1.4 Glossary
 
