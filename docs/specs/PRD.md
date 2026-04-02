@@ -109,7 +109,7 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 - Search documentation semantically using AI-powered embeddings
 - Edit Markdown with WYSIWYG editor — headings, styles, tables, links
 - Multi-repository documentation workspace (Admins configure which Git repositories are accessible as Spaces, which files/folders are discoverable, and how documents are organized; enables unified documentation access across multiple repositories without requiring users to know Git repository locations)
-- Integration with notification systems for document creation and updates — send emails, send notifications to Teams/Slack
+- Configurable notification system for document changes (users subscribe to specific documents, folders, or Spaces; choose notification channels per subscription — email, Teams, Slack; prevents notification flooding by requiring explicit opt-in per document/folder)
 - Integrated chat where users can ask questions, review documents, and collaborate
 - Integrated AI assistant for inline document editing that can fix misprints, suggest better wording, and improve content
 - Support integration with local LLM models for misprint detection and content enhancement
@@ -520,6 +520,22 @@ Admins **MUST** be able to configure default mention notification channels (emai
 **Rationale**: Central defaults provide a safe baseline communication policy while preserving user-level control.
 
 **Actors**: `cpt-cyberwiki-actor-admin`
+
+#### Document Change Notification Subscriptions
+
+- [ ] `p2` - **ID**: `cpt-cyberwiki-fr-document-change-notifications`
+
+Users **MUST** be able to subscribe to document change notifications at three levels: individual documents, folders, or entire Spaces. For each subscription, users **MUST** be able to configure:
+
+1. **Notification channels** — choose which channels to receive notifications on (email, Microsoft Teams, Slack) per subscription
+2. **Notification triggers** — select which events trigger notifications (document created, document updated, document deleted, comment added)
+3. **Subscription management** — view all active subscriptions and unsubscribe at any time
+
+The system **MUST** use an explicit opt-in model: users receive notifications only for documents/folders/Spaces they have explicitly subscribed to. The system **MUST NOT** send unsolicited notifications for documents the user has not subscribed to (except for direct mentions, which follow the mention notification preferences).
+
+**Rationale**: An opt-in subscription model prevents notification flooding by giving users granular control over what they are notified about and how. Users can stay informed about critical documents without being overwhelmed by changes to documents they don't care about. Per-subscription channel configuration allows users to route high-priority notifications to immediate channels (Teams/Slack) and lower-priority ones to email.
+
+**Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
 #### Smart Editing: Newly Typed Text Highlighting
 
