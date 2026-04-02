@@ -121,6 +121,7 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 
 | Term | Definition |
 |------|------------|
+| VCS (Version Control System) | A system that tracks changes to files over time, enabling multiple people to collaborate on documents and code while maintaining a complete history of all changes. Common VCS platforms include Git, GitHub, and Bitbucket. |
 | Space | A top-level organisational unit that groups related documents, optionally linked to a Git repository |
 | Document | A file (typically Markdown) stored within a Space, version-controlled through Git |
 | VCS Provider | An external version control system hosting service (e.g., GitHub, Bitbucket Server) accessed via an abstract pluggable interface; v1 supports GitHub and Bitbucket Server, and the interface allows further providers to be added without changing application logic |
@@ -249,11 +250,11 @@ Modern platforms use various comment system architectures: third-party services 
 
 - Web-based browsing and editing of Git-backed documents (Markdown focus)
 - VS Code extension providing IDE-native access to core platform features
-- Live editing with immediate rich preview (Markdown, diagrams, tables)
+- True WYSIWYG editing (titles, bold, underline, colors, tables render as formatted content while editing; no separate preview mode; underlying format is transparent to users)
 - Inline commenting on documents
-- Pending Changes workflow: propose → review → approve/reject
+- Pending Changes workflow: propose → review → approve/reject (system detects conflicting edits and shows visual diff highlighting with word-level changes; users see exactly what changed and where conflicts exist)
 - Immutable change history per document
-- Bidirectional Git synchronisation with configurable direction and schedule
+- Bidirectional Git synchronisation with configurable direction and schedule (users never interact with Git commands directly; platform handles all commit/push/PR operations automatically; users simply save documents and platform manages Git workflow)
 - Pluggable VCS backend: GitHub and Bitbucket Server supported in v1; abstract interface supports adding further providers (GitLab, Azure DevOps) without changing application logic
 - Repository browsing, file tree navigation, and pull request listing via the VCS provider interface
 - Dual-mode left navigation panel: Document View (Confluence-style titled hierarchy from a configurable Document Index) and File Tree View (raw directory structure); user-switchable per Space
