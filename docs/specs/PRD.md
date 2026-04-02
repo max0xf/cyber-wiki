@@ -100,7 +100,8 @@ The result is fragmented knowledge: stale wiki pages that no longer reflect the 
 
 - Browse, author, and review Git-backed documents from a web UI
 - VS Code extension for IDE-native access to documentation browsing, editing, and commenting
-- Leave context-aware inline comments that survive content changes
+- REST API access for AI agents (CyPilot) to read, search, and analyze documentation content
+- Leave context-aware inline comments that survive content changes (comments are flagged when anchored text is removed)
 - Preview rich content: Markdown, sequence diagrams, draw.io diagrams, tables
 - Validate documents against configurable rules before saving
 - Synchronise document changes bidirectionally with Git repositories
@@ -374,6 +375,25 @@ The extension **MUST** communicate with the Cyber Wiki backend via the same REST
 
 **Actors**: `cpt-cyberwiki-actor-admin`, `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-commenter`, `cpt-cyberwiki-actor-viewer`
 
+#### API Access for AI Agents
+
+- [ ] `p1` - **ID**: `cpt-cyberwiki-fr-api-agent-access`
+
+The system **MUST** provide a REST API that enables AI agents (such as CyPilot) to programmatically access documentation content. The API **MUST** support at minimum:
+
+1. **Document retrieval** — read document content by path or ID
+2. **Document search** — perform full-text and semantic search across accessible documents
+3. **Document metadata** — retrieve document metadata (title, last modified, author, change history)
+4. **Space browsing** — list available spaces and navigate document hierarchies
+5. **Authentication** — authenticate using API tokens or service account credentials
+6. **Access control** — respect the same permission model as human users
+
+The API **MUST** return structured responses (JSON) suitable for programmatic consumption. The API **MUST** support pagination for large result sets.
+
+**Rationale**: AI agents like CyPilot need programmatic access to documentation to provide context-aware assistance, answer questions about documentation, and help users navigate and understand content. API access enables integration with AI workflows without requiring agents to scrape web pages or access Git repositories directly.
+
+**Actors**: `cpt-cyberwiki-actor-ci`, AI agents (CyPilot)
+
 ### 6.3 Live Document Editing
 
 #### In-Browser Editing with Live Preview
@@ -567,9 +587,9 @@ The system **MUST** allow authenticated actors to leave inline comments anchored
 
 - [ ] `p1` - **ID**: `cpt-cyberwiki-fr-comment-persistence`
 
-The system **MUST** keep comments visible and relevant even after the lines they are anchored to have changed; when an anchor becomes outdated, the comment **MUST** be flagged rather than hidden.
+The system **MUST** keep comments visible and relevant even after the lines they are anchored to have changed; when an anchor becomes outdated (including when the anchored text is modified or removed), the comment **MUST** be flagged as "outdated" rather than hidden. Comments anchored to completely removed text **MUST** remain visible with a clear indication that the original anchor no longer exists.
 
-**Rationale**: Comments that silently disappear after a document edit cause reviewers to lose track of unresolved concerns; flagging preserves traceability without cluttering the view.
+**Rationale**: Comments that silently disappear after a document edit cause reviewers to lose track of unresolved concerns; flagging preserves traceability without cluttering the view. When anchored text is removed, the comment still provides valuable context about what was discussed and why changes were made.
 
 **Actors**: `cpt-cyberwiki-actor-editor`, `cpt-cyberwiki-actor-admin`
 
